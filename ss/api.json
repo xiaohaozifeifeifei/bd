@@ -1,18 +1,19 @@
 {
     "spider": "./lib/xyqxbpq.jar",
     "wallpaper": "https://api.nguaduot.cn/netbian/random",
-    "warningText": "测试使用",
+    "logo": "./logo.gif",
+    "warningText": "🍁滴滴滴滴滴滴🍁",
     "sites": [
         {
             "key": "豆瓣",
             "name": "豆瓣",
             "type": 3,
-            "jar": "./lib/pg.jar",
-            "api": "csp_Douban",
             "searchable": 0,
-            "changeable": 1,
+            "changeable": 0,
+            "quickSearch": 0,
+            "filterable": 1,
             "indexs": 1,
-            "ext": "./lib/douban.json"
+            "api": "./lib/apiv57uukw.js"
         },
         {
             "key": "ss直播",
@@ -23,17 +24,6 @@
             "quickSearch": 1,
             "filterable": 1,
             "ext": "./js/ss直播.js"
-        },
-        {
-            "key": "LocalMixed",
-            "name": "本地混合源",
-            "type": 3,
-            "api": "./py/JSON本地读取.py",
-            "searchable": 1,
-            "quickSearch": 1,
-            "filterable": 0,
-            "changeable": 1,
-            "playerType": 2
         },
         {
             "key": "艾蛋影视",
@@ -1971,7 +1961,6 @@
             "changeable": 1
         }
     ],
-    "logo": "https://s1.aigei.com/prevfiles/07af40533c04427f91098598cf6cc957.gif?e=1735488000&token=P7S2Xpzfz11vAkASLTkfHN7Fw-oOZBecqeJaxypL:lVGlhYNMGya3ymTjGfqfuLbFKTY=",
     "lives": [
         {
             "name": "Gather.网络直播",
