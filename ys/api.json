@@ -69,13 +69,7 @@
             "ext": "./js/🎒央视大全.js"
         },
         
-        {
-            "key": "牛牛APP",
-            "name": "牛牛APP",
-            "type": 3,
-            "api": "./js/drpy2.min.js",
-            "ext": "./js/牛牛app.js"
-        },
+     
         {
             "key": "✨Gimy劇迷✨",
             "name": "✨Gimy劇迷✨",
