@@ -15,17 +15,7 @@
             "indexs": 1,
             "api": "./lib/apiv57uukw.js"
         },
-        {
-            "key": "全球追更",
-            "name": "全球追更",
-            "type": 3,
-            "searchable": 0,
-            "changeable": 0,
-            "quickSearch": 0,
-            "filterable": 1,
-            "indexs": 1,
-            "api": "./js/全球更新.js"
-        },
+     
         {
             "key": "🎒央视综合",
             "name": "🎒央视综合",
@@ -68,41 +58,7 @@
             "api": "./js/drpy2.min.js",
             "ext": "./js/🎒央视大全.js"
         },
-        {
-            "key": "腾讯视频",
-            "name": "腾讯｜视频",
-            "type": 3,
-            "api": "./js/drpy2.min.js",
-            "ext": "./js/腾讯视频.js"
-        },
-        {
-            "key": "优酷视频",
-            "name": "优酷｜视频",
-            "type": 3,
-            "api": "./js/drpy2.min.js",
-            "ext": "./js/优酷视频.js"
-        },
-        {
-            "key": "芒果视频",
-            "name": "芒果｜视频",
-            "type": 3,
-            "api": "./js/drpy2.min.js",
-            "ext": "./js/芒果视频.js"
-        },
-        {
-            "key": "爱奇艺",
-            "name": "爱奇异｜视频",
-            "type": 3,
-            "api": "./js/drpy2.min.js",
-            "ext": "./js/爱奇艺.js"
-        },
-        {
-            "key": "牛牛APP",
-            "name": "牛牛APP",
-            "type": 3,
-            "api": "./js/drpy2.min.js",
-            "ext": "./js/牛牛app.js"
-        },
+        
         {
             "key": "山有木兮",
             "name": "山有木兮.js",
