@@ -1,440 +1,250 @@
 # coding=utf-8
-# !/usr/bin/python
-
-"""
-
-作者 丢丢喵推荐 🚓 内容均从互联网收集而来 仅供交流学习使用 版权归原创者所有 如侵犯了您的权益 请通知作者 将及时删除侵权内容
-                    ====================Diudiumiao====================
-
-"""
-
-from Crypto.Util.Padding import unpad
-from Crypto.Util.Padding import pad
-from urllib.parse import unquote
-from Crypto.Cipher import ARC4
-from urllib.parse import quote
-from base.spider import Spider
-from Crypto.Cipher import AES
-from datetime import datetime
-from bs4 import BeautifulSoup
-from base64 import b64decode
-import urllib.request
-import urllib.parse
-import datetime
-import binascii
-import requests
-import hashlib
-import base64
-import json
-import time
-import sys
 import re
-import os
+from urllib.parse import quote, unquote
+import requests
+from base.spider import Spider
 
-sys.path.append('..')
-
-xurl = "https://api-store.qmplaylet.com"
-
-xurl1 = "https://api-read.qmplaylet.com"
-
-keys = "d3dGiJc651gSQ8w1"
-
-data = {
-        "static_score": "0.8",
-        "uuid": "00000000-7fc7-08dc-0000-000000000000",
-        "device-id": "20250220125449b9b8cac84c2dd3d035c9052a2572f7dd0122edde3cc42a70",
-        "mac": "",
-        "sourceuid": "aa7de295aad621a6",
-        "refresh-type": "0",
-        "model": "22021211RC",
-        "wlb-imei": "",
-        "client-id": "aa7de295aad621a6",
-        "brand": "Redmi",
-        "oaid": "",
-        "oaid-no-cache": "",
-        "sys-ver": "12",
-        "trusted-id": "",
-        "phone-level": "H",
-        "imei": "",
-        "wlb-uid": "aa7de295aad621a6",
-        "session-id": str(int(time.time() * 1000)),
-        }
-
-json_str = json.dumps(data, separators=(',', ':'))
-encoded = base64.b64encode(json_str.encode()).decode()
-
-char_map = {
-        '+': 'P', '/': 'X', '0': 'M', '1': 'U', '2': 'l', '3': 'E', '4': 'r',
-        '5': 'Y', '6': 'W', '7': 'b', '8': 'd', '9': 'J', 'A': '9', 'B': 's',
-        'C': 'a', 'D': 'I', 'E': '0', 'F': 'o', 'G': 'y', 'H': '_', 'I': 'H',
-        'J': 'G', 'K': 'i', 'L': 't', 'M': 'g', 'N': 'N', 'O': 'A', 'P': '8',
-        'Q': 'F', 'R': 'k', 'S': '3', 'T': 'h', 'U': 'f', 'V': 'R', 'W': 'q',
-        'X': 'C', 'Y': '4', 'Z': 'p', 'a': 'm', 'b': 'B', 'c': 'O', 'd': 'u',
-        'e': 'c', 'f': '6', 'g': 'K', 'h': 'x', 'i': '5', 'j': 'T', 'k': '-',
-        'l': '2', 'm': 'z', 'n': 'S', 'o': 'Z', 'p': '1', 'q': 'V', 'r': 'v',
-        's': 'j', 't': 'Q', 'u': '7', 'v': 'D', 'w': 'w', 'x': 'n', 'y': 'L',
-        'z': 'e'
-           }
-
-qm_params = ''
-for c in encoded:
-    qm_params += char_map.get(c, c)
-
-params_str = (
-    "AUTHORIZATION=" +
-    "app-version=10001" +
-    "application-id=com.duoduo.read" +
-    "channel=unknown" +
-    "is-white=" +
-    "net-env=5" +
-    "platform=android" +
-    f"qm-params={qm_params}" +
-    f"reg={keys}"
-             )
-
-signs = hashlib.md5(params_str.encode()).hexdigest()
-
-headerx = {
-    'net-env': '5',
-    'reg': '',
-    'channel': 'unknown',
-    'is-white': '',
-    'platform': 'android',
-    'application-id': 'com.duoduo.read',
-    'authorization': '',
-    'app-version': '10001',
-    'user-agent': 'webviewversion/0',
-    'qm-params': qm_params,
-    'sign': signs
-          }
-
-headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.87 Safari/537.36'
-          }
 
 class Spider(Spider):
-    global xurl
-    global xurl1
-    global keys
-    global headerx
-    global headers
-
     def getName(self):
-        return "首页"
+        return "七猫短剧"
 
-    def init(self, extend):
-        pass
+    def init(self, extend=""):
+        self.host = "https://7maoduanju.com"
+        if isinstance(extend, str) and extend.strip().startswith("http"):
+            self.host = extend.strip().rstrip("/")
+        self.headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+            "Referer": self.host + "/",
+        }
+        self.session = requests.Session()
+        self.session.headers.update(self.headers)
 
-    def isVideoFormat(self, url):
-        pass
+    def _get(self, url):
+        try:
+            r = self.session.get(url, headers=self.headers, timeout=15, verify=False)
+            r.encoding = "utf-8"
+            if r.status_code == 200 and r.text:
+                return r.text
+        except Exception:
+            pass
+        return ""
 
-    def manualVideoCheck(self):
-        pass
+    def _api(self, path):
+        try:
+            r = self.session.get(self.host + path, headers=self.headers, timeout=15, verify=False)
+            if r.status_code == 200:
+                return r.json()
+        except Exception:
+            pass
+        return []
 
-    def extract_middle_text(self, text, start_str, end_str, pl, start_index1: str = '', end_index2: str = ''):
-        if pl == 3:
-            plx = []
-            while True:
-                start_index = text.find(start_str)
-                if start_index == -1:
-                    break
-                end_index = text.find(end_str, start_index + len(start_str))
-                if end_index == -1:
-                    break
-                middle_text = text[start_index + len(start_str):end_index]
-                plx.append(middle_text)
-                text = text.replace(start_str + middle_text + end_str, '')
-            if len(plx) > 0:
-                purl = ''
-                for i in range(len(plx)):
-                    matches = re.findall(start_index1, plx[i])
-                    output = ""
-                    for match in matches:
-                        match3 = re.search(r'(?:^|[^0-9])(\d+)(?:[^0-9]|$)', match[1])
-                        if match3:
-                            number = match3.group(1)
-                        else:
-                            number = 0
-                        if 'http' not in match[0]:
-                            output += f"#{match[1]}${number}{xurl}{match[0]}"
-                        else:
-                            output += f"#{match[1]}${number}{match[0]}"
-                    output = output[1:]
-                    purl = purl + output + "$$$"
-                purl = purl[:-3]
-                return purl
-            else:
-                return ""
-        else:
-            start_index = text.find(start_str)
-            if start_index == -1:
-                return ""
-            end_index = text.find(end_str, start_index + len(start_str))
-            if end_index == -1:
-                return ""
+    def _badge(self, cls):
+        return {"free": "免费", "vip": "会员", "coin": "金币"}.get(cls or "", "")
 
-        if pl == 0:
-            middle_text = text[start_index + len(start_str):end_index]
-            return middle_text.replace("\\", "")
+    def _cards(self, html):
+        items = []
+        for m in re.finditer(r'<a class="drama-card-link" href="(/drama/[0-9a-f-]{36}/?)">(.*?)</a>', html or "", re.S):
+            body = m.group(2)
+            did = re.search(r"/drama/([0-9a-f-]{36})", m.group(1)).group(1)
+            img = re.search(r'<img[^>]+src="([^"]+)"[^>]*alt="([^"]*)"', body)
+            if not img:
+                continue
+            badge = re.search(r'drama-card-link__access--([a-z]+)', body)
+            heat = re.search(r'drama-card-link__heat">[^0-9]*([0-9.万千]+)<', body)
+            update = re.search(r'drama-card-link__update">([^<]+)<', body)
+            remarks = " ".join(x for x in (
+                self._badge(badge.group(1)) if badge else "",
+                update.group(1) if update else "",
+                ("热度" + heat.group(1)) if heat else "",
+            ) if x)
+            items.append({"vod_id": did, "vod_name": img.group(2).strip(), "vod_pic": img.group(1), "vod_remarks": remarks})
+        return items
 
-        if pl == 1:
-            middle_text = text[start_index + len(start_str):end_index]
-            matches = re.findall(start_index1, middle_text)
-            if matches:
-                jg = ' '.join(matches)
-                return jg
-
-        if pl == 2:
-            middle_text = text[start_index + len(start_str):end_index]
-            matches = re.findall(start_index1, middle_text)
-            if matches:
-                new_list = [f'{item}' for item in matches]
-                jg = '$$$'.join(new_list)
-                return jg
+    def _sections(self, html):
+        secs = []
+        for m in re.finditer(
+                r'<section class="home-block">.*?<h2 class="home-block__title">([^<]+)</h2><a class="home-block__more" href="/category/([^"/]+)/?"',
+                html or "", re.S):
+            secs.append({"type_id": unquote(m.group(2)), "type_name": m.group(1).strip(), "html": m.group(0)})
+        return secs
 
     def homeContent(self, filter):
-        result = {"class": []}
-
-        sign_string = f"operation=1playlet_privacy=1tag_id=0{keys}"
-        sign = hashlib.md5(sign_string.encode('utf-8')).hexdigest()
-
-        url = f"{xurl}/api/v1/playlet/index?tag_id=0&playlet_privacy=1&operation=1&sign={sign}"
-        detail = requests.get(url=url, headers=headerx)
-        detail.encoding = "utf-8"
-        data = detail.json()
-
-        duoxuan = ['0', '1', '2', '3', '4']
-        for duo in duoxuan:
-            js = data['data']['tag_categories'][int(duo)]['tags']
-
-            for vod in js:
-
-                name = vod['tag_name']
-                if "推荐" in name:
-                    continue
-
-                id = vod['tag_id']
-
-                result["class"].append({"type_id": id, "type_name": "集多🌠" + name})
-
-        return result
+        html = self._get(self.host + "/")
+        classes = [{"type_id": s["type_id"], "type_name": s["type_name"]} for s in self._sections(html)]
+        return {"class": classes, "filters": {}, "list": self._cards(html)}
 
     def homeVideoContent(self):
-        videos = []
+        return {"list": self._cards(self._get(self.host + "/"))}
 
-        sign_string = f"operation=1playlet_privacy=1tag_id=0{keys}"
-        sign = hashlib.md5(sign_string.encode('utf-8')).hexdigest()
+    def categoryContent(self, tid, pg, filter, extend):
+        pg = int(pg) if str(pg).isdigit() else 1
+        if pg > 1:
+            return {"page": pg, "pagecount": 1, "limit": 0, "total": 0, "list": []}
+        items = self._cards(self._get(self.host + "/category/" + quote(str(tid or ""), safe="") + "/"))
+        return {"page": 1, "pagecount": 1, "limit": len(items), "total": len(items), "list": items}
 
-        url = f"{xurl}/api/v1/playlet/index?tag_id=0&playlet_privacy=1&operation=1&sign={sign}"
-        detail = requests.get(url=url, headers=headerx)
-        detail.encoding = "utf-8"
-        data = detail.json()
+    def _episodes_json(self, html):
+        eps = []
+        for m in re.finditer(
+                r'\\"id\\":\\"([0-9a-f-]{36})\\",\\"indexNo\\":(\d+),\\"title\\":\\"([^\\]+?)\\",\\"locked\\":(true|false)(?:[^}]*?\\"seoContentUrl\\":\\"([^\\]+?)\\")?',
+                html or ""):
+            eps.append({"id": m.group(1), "no": int(m.group(2)), "title": m.group(3),
+                        "locked": m.group(4) == "true", "url": m.group(5) or ""})
+        return eps
 
-        data = data['data']['list']
+    def _episodes_anchor(self, html):
+        eps = []
+        for m in re.finditer(
+                r'<a class="drama-detail__ep[^"]*" title="(第\d+集)，([^"]+)"[^>]*href="(/play/[0-9a-f-]{36}/\?episodeId=[0-9a-f-]{36})"',
+                html or ""):
+            no = re.search(r"\d+", m.group(1))
+            eps.append({"id": "", "no": int(no.group()) if no else 0, "title": m.group(1),
+                        "locked": "免费" not in m.group(2), "url": "", "play": m.group(3)})
+        return eps
 
-        for vod in data:
+    def _unlock(self, eps):
+        base, width = "", 2
+        for e in eps:
+            m = re.search(r"^(.*/)(ep(\d+)/ep\d+\.m3u8)$", e["url"] or "")
+            if m:
+                base, width = m.group(1), len(m.group(3))
+                break
+        if not base:
+            return
+        for e in eps:
+            if not e["url"] and e["no"] > 0:
+                n = str(e["no"]).zfill(width)
+                e["url"] = "%sep%s/ep%s.m3u8" % (base, n, n)
 
-            name = vod['title']
+    def _detail_api(self, did):
+        d = self._api("/api/toc/v1/dramas/" + did)
+        if not isinstance(d, dict) or not d.get("id"):
+            return None, []
+        meta = {
+            "title": d.get("title", ""),
+            "cover": d.get("coverUrl", ""),
+            "desc": d.get("description", ""),
+            "tags": ",".join(d.get("tags") or []),
+            "heat": str(d.get("heat") or ""),
+            "pay": {"vip_only": "会员", "coin_only": "金币", "both": "免费"}.get(d.get("payMode") or "", ""),
+        }
+        eps = []
+        for e in d.get("episodes") or []:
+            if not isinstance(e, dict):
+                continue
+            eps.append({"id": e.get("id", ""), "no": int(e.get("indexNo") or 0),
+                        "title": e.get("title") or ("第%s集" % e.get("indexNo")),
+                        "locked": bool(e.get("locked")), "url": e.get("seoContentUrl") or ""})
+        return meta, eps
 
-            id = vod['playlet_id']
+    def _detail_html(self, html):
+        meta = self._detail_meta(html)
+        title = ""
+        m = re.search(r"<title>《(.+?)》短剧", html or "")
+        if m:
+            title = m.group(1)
+        if not title:
+            m = re.search(r'\\"title\\":\\"([^\\]+?)\\"', html or "")
+            if m:
+                title = m.group(1)
+        meta["title"] = title
+        eps = self._episodes_json(html)
+        if not eps:
+            eps = self._episodes_anchor(html)
+            for e in eps:
+                if not e["locked"] and e.get("play"):
+                    ph = self._get(self.host + e["play"])
+                    u = re.search(r'\\"seoContentUrl\\":\\"(https?://[^\\]+\.m3u8)\\"', ph or "")
+                    if u:
+                        e["url"] = u.group(1)
+                        break
+        return meta, eps
 
-            pic = vod['image_link']
-
-            remark = vod['hot_value']
-
-            video = {
-                "vod_id": id,
-                "vod_name": name,
-                "vod_pic": pic,
-                "vod_remarks": '集多▶️' + remark
-                    }
-            videos.append(video)
-
-        result = {'list': videos}
-        return result
-
-    def categoryContent(self, cid, pg, filter, ext):
-        result = {}
-        videos = []
-
-        if pg:
-            page = int(pg)
-        else:
-            page = 1
-
-        if page == 1:
-            sign_string = f"operation=1playlet_privacy=1tag_id={cid}{keys}"
-            sign = hashlib.md5(sign_string.encode('utf-8')).hexdigest()
-            url = f'{xurl}/api/v1/playlet/index?tag_id={cid}&playlet_privacy=1&operation=1&sign={sign}'
-
-        else:
-            sign_string = f"next_id={str(page)}operation=1playlet_privacy=1tag_id={cid}{keys}"
-            sign = hashlib.md5(sign_string.encode('utf-8')).hexdigest()
-            url = f'{xurl}/api/v1/playlet/index?tag_id={cid}&next_id={str(page)}&playlet_privacy=1&operation=1&sign={sign}'
-
-        detail = requests.get(url=url, headers=headerx)
-        detail.encoding = "utf-8"
-        data = detail.json()
-
-        data = data['data']['list']
-
-        for vod in data:
-
-            name = vod['title']
-
-            id = vod['playlet_id']
-
-            pic = vod['image_link']
-
-            remark = vod['hot_value']
-
-            video = {
-                "vod_id": id,
-                "vod_name": name,
-                "vod_pic": pic,
-                "vod_remarks": '集多▶️' + remark
-                    }
-            videos.append(video)
-
-        result = {'list': videos}
-        result['page'] = pg
-        result['pagecount'] = 9999
-        result['limit'] = 90
-        result['total'] = 999999
-        return result
+    def _detail_meta(self, html):
+        meta = {}
+        seg = html or ""
+        m = re.search(r'\\"coverUrl\\":\\"([^\\]+)\\"', seg)
+        if m:
+            meta["cover"] = m.group(1)
+        m = re.search(r'\\"description\\":\\"((?:[^\\]|\\.)*?)\\"', seg)
+        if m:
+            meta["desc"] = m.group(1).replace("\\n", "\n").replace('\\"', '"').replace("\\/", "/")
+        m = re.search(r'\\"tags\\":\[([^\]]*)\]', seg)
+        if m:
+            meta["tags"] = ",".join(re.findall(r'\\"([^\\]+)\\"', m.group(1)))
+        m = re.search(r'\\"heat\\":(\d+)', seg)
+        if m:
+            meta["heat"] = m.group(1)
+        m = re.search(r'\\"payMode\\":\\"([a-z_]+)\\"', seg)
+        if m:
+            meta["pay"] = {"vip_only": "会员", "coin_only": "金币", "both": "免费"}.get(m.group(1), "")
+        if not meta.get("desc"):
+            m = re.search(r'<meta name="description" content="([^"]+)"', seg)
+            if m:
+                meta["desc"] = m.group(1)
+        return meta
 
     def detailContent(self, ids):
-        did = ids[0]
-        result = {}
-        videos = []
-        xianlu = ''
-        bofang = ''
-
-        sign_string = f"playlet_id={did}{keys}"
-        sign = hashlib.md5(sign_string.encode('utf-8')).hexdigest()
-
-        urls = f'{xurl1}/player/api/v1/playlet/info?playlet_id={did}&sign={sign}'
-        detail = requests.get(url=urls, headers=headerx)
-        detail.encoding = "utf-8"
-        detail = detail.json()
-
-        url = 'http://rihou.cc:88/je.json'
-        response = requests.get(url)
-        response.encoding = 'utf-8'
-        code = response.text
-        name = self.extract_middle_text(code, "s1='", "'", 0)
-        Jumps = self.extract_middle_text(code, "s2='", "'", 0)
-
-        blurb = detail.get('data', {}).get('intro') or "未知"
-        content = '😸集多为您介绍剧情📢' + blurb
-
-        jisu = detail['data']['total_episode_num'] or "未知"
-        jisu = jisu + '全集'
-
-        leixing = detail['data']['tags'] or "未知"
-
-        remarks = leixing + " " + jisu
-
-        if name not in content:
-            bofang = Jumps
-            xianlu = '1'
-        else:
-            soup = detail['data']['play_list']
-
-            for sou in soup:
-
-                id = sou['video_url']
-
-                name = sou['sort']
-
-                bofang = bofang + name + '$' + id + '#'
-
-            bofang = bofang[:-1]
-
-            xianlu = '集多七猫专线'
-
-        videos.append({
+        did = str(ids[0]).strip() if ids else ""
+        if not re.fullmatch(r"[0-9a-f-]{36}", did):
+            m = re.search(r"[0-9a-f-]{36}", did)
+            did = m.group() if m else ""
+        if not did:
+            return {"list": []}
+        meta, eps = self._detail_api(did)
+        if not eps:
+            html = self._get(self.host + "/drama/" + did + "/")
+            if not html:
+                return {"list": []}
+            meta, eps = self._detail_html(html)
+        self._unlock(eps)
+        vod = {
             "vod_id": did,
-            "vod_remarks": remarks,
-            "vod_content": content,
-            "vod_play_from": xianlu,
-            "vod_play_url": bofang
-                     })
-
-        result['list'] = videos
-        return result
-
-    def playerContent(self, flag, id, vipFlags):
-
-        result = {}
-        result["parse"] = 0
-        result["playUrl"] = ''
-        result["url"] = id
-        result["header"] = headers
-        return result
-
-    def searchContentPage(self, key, quick, pg):
-        result = {}
-        videos = []
-
-        if pg:
-            page = int(pg)
-        else:
-            page = 1
-
-        sign_string = f"extend=page={str(page)}read_preference=0track_id=ec1280db127955061754851657967wd={key}{keys}"
-        sign = hashlib.md5(sign_string.encode('utf-8')).hexdigest()
-
-        url = f'{xurl}/api/v1/playlet/search?extend=&page={str(page)}&wd={key}&read_preference=0&track_id=ec1280db127955061754851657967&sign={sign}'
-        detail = requests.get(url=url, headers=headerx)
-        detail.encoding = "utf-8"
-        detail = detail.json()
-
-        data = detail['data']['list']
-
-        for vod in data:
-
-            name = vod['title']
-            name = re.sub(r'<[^>]+>', '', name)
-            name = ' '.join(name.split())
-
-            id = vod['id']
-
-            pic = vod['image_link']
-
-            remark = vod['total_num']
-
-            video = {
-                "vod_id": id,
-                "vod_name": name,
-                "vod_pic": pic,
-                "vod_remarks": '集多▶️' + remark
-                    }
-            videos.append(video)
-
-        result['list'] = videos
-        result['page'] = pg
-        result['pagecount'] = 9999
-        result['limit'] = 90
-        result['total'] = 999999
-        return result
+            "vod_name": meta.get("title", ""),
+            "vod_pic": meta.get("cover", ""),
+            "type_name": meta.get("tags", ""),
+            "vod_year": "",
+            "vod_area": "",
+            "vod_remarks": " ".join(x for x in (
+                ("更新至%d集" % len(eps)) if eps else "",
+                meta.get("pay", ""),
+                ("热度" + meta["heat"]) if meta.get("heat") else "",
+            ) if x),
+            "vod_actor": "",
+            "vod_director": "",
+            "vod_content": meta.get("desc", ""),
+        }
+        names, urls = [], []
+        for e in sorted(eps, key=lambda x: x["no"]):
+            if not e["url"]:
+                continue
+            names.append("七猫短剧")
+            urls.append("%s$%s" % (e["title"], e["url"]))
+        if names:
+            vod["vod_play_from"] = "$$$".join(names)
+            vod["vod_play_url"] = "#".join(urls)
+        return {"list": [vod]}
 
     def searchContent(self, key, quick, pg="1"):
-        return self.searchContentPage(key, quick, '1')
+        items = []
+        for d in self._api("/api/toc/v1/search?q=" + quote(str(key or ""), safe="")) or []:
+            if not isinstance(d, dict) or not d.get("id"):
+                continue
+            pay = {"vip_only": "会员", "coin_only": "金币", "both": "免费"}.get(d.get("payMode") or "", "")
+            remarks = " ".join(x for x in (
+                pay,
+                ("共%d集" % d["episodeCount"]) if d.get("episodeCount") else "",
+                ("热度%d" % d["heat"]) if d.get("heat") else "",
+            ) if x)
+            items.append({"vod_id": d["id"], "vod_name": d.get("title", ""),
+                          "vod_pic": d.get("coverUrl", ""), "vod_remarks": remarks})
+        return {"page": 1, "pagecount": 1, "limit": len(items), "total": len(items), "list": items}
 
-    def localProxy(self, params):
-        if params['type'] == "m3u8":
-            return self.proxyM3u8(params)
-        elif params['type'] == "media":
-            return self.proxyMedia(params)
-        elif params['type'] == "ts":
-            return self.proxyTs(params)
-        return None
-
-
-
-
-
-
-
-
+    def playerContent(self, flag, id, vipFlags):
+        url = str(id or "").strip()
+        if not url.startswith("http"):
+            return {"parse": 0, "playUrl": "", "url": "", "header": self.headers}
+        header = dict(self.headers)
+        header["Referer"] = self.host + "/"
+        return {"parse": 0, "playUrl": "", "url": url, "header": header}
