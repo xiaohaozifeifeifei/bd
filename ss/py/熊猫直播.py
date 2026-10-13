@@ -149,7 +149,7 @@ class Spider(Spider):
         vid = ids[0]; parts = vid.split('|'); play_id = parts[0]
         user_id = parts[1] if len(parts) > 1 else play_id.split('_')[0]
         title = parts[2] if len(parts) > 2 else user_id
-        vod = {"vod_id": vid, "vod_name": title, "vod_pic": "", "type_name": "LIVE", "vod_year": "", "vod_area": "", "vod_remarks": "PandaLive", "vod_actor": "", "vod_director": "", "vod_content": title, "vod_play_from": "爱看影视", "vod_play_url": f"爱看影视${vid}"}
+        vod = {"vod_id": vid, "vod_name": title, "vod_pic": "", "type_name": "LIVE", "vod_year": "", "vod_area": "", "vod_remarks": "PandaLive", "vod_actor": "", "vod_director": "", "vod_content": title, "vod_play_from": "IVS", "vod_play_url": f"直播${vid}"}
         return {"list": [vod]}
     def searchContent(self, key, quick, pg="1"):
         items = self._list_live().get('list', [])
