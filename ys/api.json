@@ -86,24 +86,7 @@
             "quickSearch": 1,
             "filterable": 1
         },
-        {
-            "key": "cat_123TV",
-            "name": "cat_123TV",
-            "type": 3,
-            "api": "./js/cat_123TV.js",
-            "searchable": 1,
-            "quickSearch": 1,
-            "filterable": 1
-        },
-        {
-            "key": "cat_旺旺影视",
-            "name": "cat_旺旺影视.js",
-            "type": 3,
-            "api": "./js/cat_旺旺影视.js",
-            "searchable": 1,
-            "quickSearch": 1,
-            "filterable": 1
-        },
+   
         {
             "key": "New6v",
             "name": "New6V｜磁力",
