@@ -1224,7 +1224,17 @@
     ],
     "parses": [],
     "lives": [
+                {
+            "name": "牛牛直播",
+            "type": 0,
+            "url": "https://iptv-sources-64q.pages.dev/youhun.m3u"
+        },
         {
+            "name": "直播电视",
+            "type": 0,
+            "url": "https://live.zbds.top/tv/iptv4.txt"
+        },
+		{
             "name": "📡咪咕直播",
             "type": 0,
             "url": "https://gh-proxy.com/https://raw.githubusercontent.com/develop202/migu_video/refs/heads/main/interface.txt",
