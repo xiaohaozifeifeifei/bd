@@ -1,0 +1,16 @@
+{
+    "请求头": "User-Agent$MOBILE_UA",
+    "编码": "UTF-8",
+	"主页url": "https://ddd.thyys.com/",
+	"直接播放": "1",
+	"搜索模式": "1",
+	"数组": "<a class=\"vodlist_detail lazyload img-shadow\"&&</span></a>",
+	"标题": "title=\"&&\"",
+    "链接": "https://ddd.thyys.com/vodplay/+voddetail/&&.html+-1-1.html",
+	"图片": "data-original=\"&&\"",
+	"搜索url": "https://ddd.thyys.com/vodsearch/{wd}----------{pg}---.html",
+    "分类url": "https://ddd.thyys.com/vodshow/{cateId}--{by}---{letter}---{catePg}---.html",
+    "分类": "有码$1#中文有码$7#日本有码$8#国产$2#国产精品$10#溏心VLog$13#欧美$3#欧美性爱$11#无码$4#中文无码$6#日本无码$9#动漫$5#卡通动漫$12",
+    "字母": "A$A#B$B#C$C#D$D#E$E#F$F#G$G#H$H#I$I#J$J#K$K#L$L#M$M#N$N#O$O#P$P#Q$Q#R$R#S$S#T$T#U$U#V$V#W$W#X$X#Y$Y#Z$Z#0-9$0-9",
+    "排序": "最新$time#最热$hits#评分$score"
+}

@@ -1,0 +1,18 @@
+{
+    "请求头": "User-Agent$MOBILE_UA",
+    "编码": "UTF-8",
+	"主页url":"https://jddvz1.navobmco.com/",
+	"直接播放": "1",
+	"搜索模式": "1",
+	"数组": "<li class=\"Xc_home_article-si Xct index5\">&&<div class=\"last\">",
+	"标题": "title=\"&&\"",
+	"链接": "<a href=\"&&\"",
+	"图片": "data-src=\"&&\"",
+	"播放数组": "<div class=\"dplayer\"&&<p></p>",
+    "播放列表": "data-video_id=\"&&\"",
+    "播放标题": "data-video_title=\"&&\"",
+    "播放链接": "{&quot;url&quot;:&quot;&&?auth_key=",
+	"搜索url": "https://jddvz1.navobmco.com/search/{wd}/{pg}/",
+    "分类url": "https://jddvz1.navobmco.com/category/{cateId}/{catePg}/",
+    "分类": "今日大赛$jrds#热搜大赛$rsds#学院大赛$xyds#女神大赛$nsds#网红大赛$whds#明星大赛$mxds#主题大赛$ztds#奇闻大赛$qwds#乱伦大赛$llds#撸友大赛$lyds#女同大赛$ntds#污漫大赛$wmd"
+}

@@ -1,0 +1,14 @@
+{
+                "嗅探词": ".mp4#.m3u8",
+                "二次截取":"热门标签--<center>&&</center>",
+                "数组": "p:article.loop-video||热门标签--<a&&</a>",
+                "标题": "p:img->alt||热门标签--title=\"&&\"",
+                "副标题": "p:span.duration->text",
+                "图片": "p:img->src",
+                "链接": "p:a->href||色情类型--p:a->href+&p={catePg}||热门标签--href=\"&&\"+&p={catePg}",
+                "二级目录": "色情类型|folder-0-0-H#热门标签|folder-0-0-H",
+                "特殊分类链接":"色情类型$https://great-1king.dwooo.xyz/?{cateId}.html#热门标签$https://great-1king.dwooo.xyz/?{cateId}.html",
+                "分类url": "https://great-1king.dwooo.xyz/?fenlei={cateId}&p={catePg};;z",
+                
+                "分类":"色情类型$categories=1#热门标签$tags-ch-all#最新视频$video=1#日韩无码$日韩无码#国产精品$国产精品#日韩精品$日韩精品#欧美精品$欧美精品#动漫精品$动漫精品#自拍偷拍$自拍偷拍#伦理影片$伦理影片#中文字幕$中文字幕#人妻系列$人妻系列#制服诱惑$制服诱惑#强奸乱伦$强奸乱伦#AV明星$AV明星#SM重味$SM重味#巨乳系列$巨乳系列#颜射系列$颜射系列#口交视频$口交视频#自慰系列$自慰系列#教师学生$教师学生#大秀视频$大秀视频#明星换脸$明星换脸#AV解说$AV解说"
+            }
