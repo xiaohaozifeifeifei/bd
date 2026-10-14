@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
-# 大马猴影视 - x-client播放线路修复版
-# 适配绿豆 TVBox / OK影视
-# 分类接口: /api.php/web/filter/vod?type_id=23/22/24/25&page=1&sort=hits
-# 详情接口: /api.php/web/vod/get_detail?vod_id=xxx
-# 聚合线路: /api.php/web/internal/search_aggregate?vod_id=xxx  优先提取 m3u8 直链
+# 大马猴影视 - 整合 bubutv 线路解析逻辑，实现直接播放（无需外置解析）
 
 import sys
 sys.path.append('..')
 
 import json
 import re
+import time
+import random
+import hashlib
 from urllib.parse import urlencode, quote
 from html.parser import HTMLParser
 from base.spider import Spider
@@ -30,8 +29,6 @@ class _HTMLTextExtractor(HTMLParser):
 class Spider(Spider):
     def __init__(self):
         self.host = 'https://dmhyy.com'
-        # 大马猴真实分类 ID 来自网页 /type/xx 和 XHR 返回：
-        # /type/23 电影，/type/22 剧集，/type/24 动漫，/type/25 综艺
         self.classes = [
             {'type_id': '23', 'type_name': '电影'},
             {'type_id': '22', 'type_name': '剧集'},
@@ -39,6 +36,8 @@ class Spider(Spider):
             {'type_id': '25', 'type_name': '综艺'},
         ]
         self.web_sign = ''
+        self.x_client = 'YOUR_PUBLIC_CLIENT_ID'  # 请替换为真实值
+        self._app_device_id = ''
 
     def init(self, extend=''):
         try:
@@ -52,6 +51,7 @@ class Spider(Spider):
                 if site:
                     self.host = str(site).split(',')[0].strip().rstrip('/')
                 self.web_sign = ext.get('web-sign') or ext.get('web_sign') or self.web_sign
+                self.x_client = ext.get('x-client') or ext.get('x_client') or self.x_client
         except Exception:
             pass
         return None
@@ -68,7 +68,6 @@ class Spider(Spider):
         pass
 
     def isVideoFormat(self, url):
-        # 选集字符串中经常是 .m3u8#下一集，不能只判断 ? 或结尾。
         return bool(re.search(r'\.(m3u8|mp4|flv|mkv|avi)(\?|#|$|\s)', str(url or ''), re.I))
 
     def manualVideoCheck(self):
@@ -84,13 +83,40 @@ class Spider(Spider):
             'Accept': 'application/json, text/plain, */*',
             'Accept-Language': 'zh-CN,zh;q=0.9',
             'Referer': referer or (self.host + '/'),
+            'x-client': self.x_client,
             'x-platform': 'web',
             'x-requested-with': 'XMLHttpRequest',
         }
-        # 云朵站需要 web-sign；大马猴当前播放页 XHR 不需要。若 ext 显式提供则带上。
         if getattr(self, 'web_sign', ''):
             headers['web-sign'] = self.web_sign
         return headers
+
+    def _app_headers(self):
+        """生成 app 接口需要的签名头（与 bubutv 一致）"""
+        timestamp = str(int(time.time()))
+        nonce = ''.join([str(random.randint(0, 9)) for _ in range(3)])
+        pkg = 'com.sunshine.tv'
+        ver = '4'
+        finger = 'SF-C3B2B41F6EFFFF9869176CF68F6790E8F07506FC88632C94B4F5F0430D5498CA'
+        sign_str = f"finger={finger}&id={pkg}&nonce={nonce}&sk=SK-thanks&time={timestamp}&v={ver}"
+        sign = hashlib.sha256(sign_str.encode()).hexdigest().upper()
+
+        if not self._app_device_id or len(self._app_device_id) != 16:
+            self._app_device_id = ''.join([random.choice('0123456789abcdef') for _ in range(16)])
+
+        return {
+            'User-Agent': 'okhttp/4.12.0',
+            'Accept': 'application/json',
+            'x-aid': pkg,
+            'x-ave': ver,
+            'x-time': timestamp,
+            'x-nonc': nonce,
+            'x-sign': sign,
+            'x-device-id': self._app_device_id,
+            'x-device-brand': 'vivo',
+            'x-device-model': 'V2309A',
+            'x-update-id': '0245861b-2ebf-5524-389d-f983830651ec'
+        }
 
     def _api_get(self, path, params=None, referer=''):
         self._ensure_ready()
@@ -105,7 +131,8 @@ class Spider(Spider):
             if not text:
                 return {}
             return json.loads(text)
-        except Exception:
+        except Exception as e:
+            print('大马猴接口请求失败:', path, params, e)
             return {}
 
     def _clean_text(self, s):
@@ -173,11 +200,7 @@ class Spider(Spider):
             out.append(v)
         return out
 
-
     def _category_match(self, item, real_tid):
-        """大马猴的接口即使传 type_id=22，也会混入电影/动漫/综艺。
-        所以必须在脚本内按真实 type_id/type_name 再过滤一次，避免所有分类显示相同内容。
-        """
         if not isinstance(item, dict):
             return False
         real_tid = str(real_tid)
@@ -206,10 +229,9 @@ class Spider(Spider):
         return [x for x in arr if self._category_match(x, real_tid)]
 
     def homeContent(self, filter):
-        return {'class': self.classes, 'filters': {}}
+        return {'class': self.classes}
 
     def homeVideoContent(self):
-        # 用电影热门做首页推荐。
         j = self._api_get('/api.php/web/filter/vod', {
             'type_id': '23',
             'page': '1',
@@ -224,11 +246,8 @@ class Spider(Spider):
         if isinstance(extend, dict):
             sort = extend.get('sort') or extend.get('by') or sort
 
-        # 真实 XHR 分类接口。注意大马猴不是 1/2/3/4，而是 23/22/24/25。
-        # 这里保留一个兼容映射，防止旧配置或壳缓存还传入 1/2/3/4。
         tid_map = {'1': '23', '2': '22', '3': '24', '4': '25'}
         real_tid = tid_map.get(str(tid), str(tid))
-        # 大马猴接口会混入其它分类，必须本地二次过滤。
         j = self._api_get('/api.php/web/filter/vod', {
             'type_id': real_tid,
             'page': page,
@@ -237,7 +256,6 @@ class Spider(Spider):
 
         filtered_items = self._filter_items_by_category(j, real_tid)
 
-        # 如果当前页过滤后太少，补抓后面 2 页同分类资源，避免分类页空白。
         try:
             cur_page = int(page)
         except Exception:
@@ -282,9 +300,11 @@ class Spider(Spider):
         if not wd:
             return {'list': [], 'page': int(page)}
 
-        # 真实网页搜索接口（其余候选接口均 404/无效）
         paths = [
-            ('/api.php/web/search/index', {'wd': wd, 'page': page}),
+            ('/api.php/web/search/vod', {'wd': wd, 'page': page}),
+            ('/api.php/web/vod/search', {'wd': wd, 'page': page}),
+            ('/api.php/web/search', {'wd': wd, 'page': page}),
+            ('/api.php/web/filter/vod', {'keyword': wd, 'page': page, 'sort': 'hits'}),
         ]
         for path, params in paths:
             j = self._api_get(path, params, self.host + '/search?keyword=' + quote(wd))
@@ -300,7 +320,6 @@ class Spider(Spider):
         return (arr[0] if arr else {}), j
 
     def _aggregate_sources(self, vid):
-        # 真实播放页会请求这个聚合接口，里面有很多站外直链 m3u8。必须使用 /play/vid referer 和 x-client。
         paths = [
             '/api.php/web/internal/search_aggregate',
             '/api.php/web/search_aggregate',
@@ -312,91 +331,7 @@ class Spider(Spider):
                 return arr
         return []
 
-    def _line_rank(self, src):
-        name = str(src.get('site_name') or src.get('external_display_name') or src.get('vod_play_from') or '').lower()
-        from_code = str(src.get('vod_play_from') or src.get('external_play_from') or '').lower()
-        url = str(src.get('vod_play_url') or '')
-        # 只要线路里已经是 m3u8/mp4，就按直链线路优先；decode_status 不再作为过滤条件。
-        if re.search(r'\.(m3u8|mp4|flv)(\?|#|$|\s)', url, re.I):
-            if '暴风' in name or 'bfzy' in from_code:
-                return 1
-            if '爱坤' in name or 'ikm3u8' in from_code:
-                return 2
-            if '极速' in name or 'jsm3u8' in from_code:
-                return 3
-            if '如意' in name or 'rym3u8' in from_code:
-                return 4
-            if '量子' in name or 'lzm3u8' in from_code:
-                return 5
-            return 10
-        if int(src.get('decode_status') or 0) == 0:
-            return 50
-        return 99
-
-    def _build_sources(self, vid, detail):
-        sources = []
-        seen = set()
-
-        def add_source(name, play_url):
-            name = self._clean_text(name or '')
-            play_url = str(play_url or '').strip()
-            if not name or not play_url:
-                return
-            key = name + '|' + play_url[:80]
-            if key in seen:
-                return
-            seen.add(key)
-            sources.append((name, play_url))
-
-        # 1. 优先用真实聚合接口，它返回的是可直接播放的 m3u8 线路。
-        #    这类线路比 get_detail 里的 JD/腾讯编码线路更适合 TVBox。
-        agg = self._aggregate_sources(vid)
-        if agg:
-            agg = sorted(agg, key=self._line_rank)
-            for src in agg:
-                play_url = str(src.get('vod_play_url') or '').strip()
-                if not play_url:
-                    continue
-                # 只优先加入直链线路，避免详情页无播放器或线路过多卡死。
-                if not re.search(r'\.(m3u8|mp4|flv)(\?|#|$|\s)', play_url, re.I):
-                    continue
-                line_name = (
-                    src.get('site_name')
-                    or src.get('external_display_name')
-                    or src.get('external_play_from')
-                    or src.get('vod_play_from')
-                    or '线路'
-                )
-                add_source(line_name, play_url)
-                if len(sources) >= 4:
-                    break
-
-        # 2. 兜底：从 get_detail 里只提取含 m3u8/mp4 的线路，过滤 JD/QQ 这类需二次解析的超长线路。
-        pf = str(detail.get('vod_play_from') or '')
-        pu = str(detail.get('vod_play_url') or '')
-        if pf and pu and len(sources) < 2:
-            froms = pf.split('$$$')
-            urls = pu.split('$$$')
-            for idx, f in enumerate(froms):
-                u = urls[idx] if idx < len(urls) else ''
-                if not f or not u:
-                    continue
-                if not re.search(r'\.(m3u8|mp4|flv)(\?|#|$|\s)', u, re.I):
-                    continue
-                add_source(f, u)
-                if len(sources) >= 4:
-                    break
-
-        # 3. 最后兜底：如果完全没有直链，再少量加入解析线路。
-        if not sources and pf and pu:
-            froms = pf.split('$$$')
-            urls = pu.split('$$$')
-            for idx, f in enumerate(froms[:3]):
-                u = urls[idx] if idx < len(urls) else ''
-                add_source(f, u)
-
-        return sources
-
+    # ---------- 线路构建（与 JS 版一致） ----------
     def detailContent(self, ids):
         self._ensure_ready()
         if not ids:
@@ -411,6 +346,73 @@ class Spider(Spider):
             else:
                 return {'list': []}
 
+        vodplayer = raw.get('vodplayer', []) if isinstance(raw, dict) else []
+
+        shows = []
+        play_urls = []
+
+        # 1. 聚合接口的直链（优先，need_parse=0）
+        agg_sources = self._aggregate_sources(vid)
+        if agg_sources:
+            agg_sources.sort(key=lambda s: (
+                0 if re.search(r'\.(m3u8|mp4|flv)(\?|#|$|\s)', str(s.get('vod_play_url', '')), re.I) else 1,
+                s.get('site_name', '')
+            ))
+            for src in agg_sources[:4]:
+                play_url = str(src.get('vod_play_url', '')).strip()
+                if not play_url:
+                    continue
+                need_parse = 0  # 聚合直链通常不需要解析
+                site_name = src.get('site_name') or src.get('external_display_name') or '聚合线路'
+                encoded = f"1${site_name}@{need_parse}@{play_url}"
+                shows.append(site_name)
+                play_urls.append(encoded)
+
+        # 2. 详情自带的线路
+        pf = str(detail.get('vod_play_from', '') or '')
+        pu = str(detail.get('vod_play_url', '') or '')
+        if pf and pu:
+            froms = pf.split('$$$')
+            urls = pu.split('$$$')
+            for show_code, urls_str in zip(froms, urls):
+                need_parse = 1
+                is_show = 0
+                show_name = show_code
+
+                for player in vodplayer:
+                    if player.get('from') == show_code:
+                        is_show = 1
+                        need_parse = int(player.get('decode_status', 1))
+                        if player.get('show', '').lower() != show_code.lower():
+                            show_name = f"{player['show']}\u2005({show_code})"
+                        break
+
+                if not is_show:
+                    is_show = 1
+                    sample_url = urls_str.split('#')[0].split('$')[-1] if urls_str else ''
+                    if sample_url.startswith('http') and self.isVideoFormat(sample_url):
+                        need_parse = 0
+
+                if is_show:
+                    episodes = []
+                    for url_item in urls_str.split('#'):
+                        if '$' in url_item:
+                            ep, raw_url = url_item.split('$', 1)
+                            episodes.append(f"{ep}${show_code}@{need_parse}@{raw_url}")
+                    if episodes:
+                        play_urls.append('#'.join(episodes))
+                        shows.append(show_name)
+
+        # 3. 如果没有线路，尝试用聚合接口的未处理项
+        if not shows and agg_sources:
+            for src in agg_sources[:2]:
+                play_url = str(src.get('vod_play_url', '')).strip()
+                if play_url:
+                    need_parse = 0
+                    name = src.get('site_name', '线路')
+                    play_urls.append(f"1${name}@{need_parse}@{play_url}")
+                    shows.append(name)
+
         area = detail.get('vod_area', '')
         cls = detail.get('vod_class', '')
         if isinstance(area, list):
@@ -418,7 +420,6 @@ class Spider(Spider):
         if isinstance(cls, list):
             cls = ','.join([str(x) for x in cls if x])
 
-        sources = self._build_sources(vid, detail)
         vod = {
             'vod_id': vid,
             'vod_name': self._clean_text(detail.get('vod_name') or ''),
@@ -430,60 +431,112 @@ class Spider(Spider):
             'vod_actor': self._clean_text(detail.get('vod_actor') or ''),
             'vod_director': self._clean_text(detail.get('vod_director') or ''),
             'vod_content': self._html2text(detail.get('vod_content') or ''),
-            'vod_play_from': '$$$'.join([x[0] for x in sources]),
-            'vod_play_url': '$$$'.join([x[1] for x in sources]),
+            'vod_play_from': '$$$'.join(shows),
+            'vod_play_url': '$$$'.join(play_urls),
         }
         return {'list': [vod]}
 
+    # ---------- 播放解析（使用 app 解码接口，实现直接播放） ----------
     def playerContent(self, flag, id, vipFlags):
         self._ensure_ready()
         url = str(id or '').strip()
         if not url:
             return {'parse': 0, 'url': ''}
 
-        # 直链直接播放
+        # 处理 @ 标记格式（集数$线路@need_parse@真实地址）
+        if '@' in url and not url.startswith('http'):
+            try:
+                parts = url.split('@', 2)
+                if len(parts) == 3:
+                    play_from, need_parse, raw_url = parts
+                    if need_parse == '0':
+                        if self.isVideoFormat(raw_url) or raw_url.startswith('http'):
+                            return {
+                                'parse': 0, 'jx': 0,
+                                'url': raw_url,
+                                'header': self._app_headers()
+                            }
+                        else:
+                            return {'parse': 1, 'jx': 1, 'url': raw_url}
+                    # need_parse == '1'，尝试解码
+                    decoded = self._try_decode(raw_url, play_from)
+                    if decoded:
+                        return {
+                            'parse': 0, 'jx': 0,
+                            'url': decoded,
+                            'header': self._app_headers()
+                        }
+                    # 解码失败，若原地址可用则直接播，否则交壳解析
+                    if self.isVideoFormat(raw_url) or raw_url.startswith('http'):
+                        return {'parse': 0, 'jx': 0, 'url': raw_url,
+                                'header': self._app_headers()}
+                    else:
+                        return {'parse': 1, 'jx': 1, 'url': raw_url}
+            except Exception:
+                pass
+
+        # 旧格式直链直接播放
         if url.startswith('http') and self.isVideoFormat(url):
             return {
-                'parse': 0,
-                'jx': 0,
+                'parse': 0, 'jx': 0,
                 'url': url,
-                'header': {
-                    'User-Agent': 'Mozilla/5.0',
-                    'Referer': self.host + '/'
-                }
+                'header': self._app_headers()
             }
 
-        # 官方站外编码线路尝试用 decode 接口解析
-        decode_candidates = [
-            ('/api.php/web/decode/url', {'url': url}),
-            ('/api.php/web/decode/url', {'play_url': url}),
-            ('/api.php/web/decode/url', {'vod_url': url}),
-        ]
-        for path, params in decode_candidates:
-            j = self._api_get(path, params, self.host + '/play')
-            data = j.get('data') if isinstance(j, dict) else None
-            final_url = ''
-            headers = {}
-            if isinstance(data, str):
-                final_url = data
-            elif isinstance(data, dict):
-                final_url = data.get('url') or data.get('play_url') or data.get('playUrl') or data.get('video') or ''
-                headers = data.get('header') or data.get('headers') or {}
-            elif isinstance(j, dict):
-                final_url = j.get('url') or j.get('play_url') or ''
-                headers = j.get('header') or j.get('headers') or {}
+        # 尝试旧版解码接口（web 方式）
+        decoded = self._try_decode(url, None)
+        if decoded:
+            return {
+                'parse': 0, 'jx': 0,
+                'url': decoded,
+                'header': self._app_headers()
+            }
 
-            if final_url:
-                return {
-                    'parse': 0 if self.isVideoFormat(final_url) else 1,
-                    'jx': 0 if self.isVideoFormat(final_url) else 1,
-                    'url': final_url,
-                    'header': headers or {'User-Agent': 'Mozilla/5.0', 'Referer': self.host + '/'}
-                }
-
-        # 腾讯/优酷/爱奇艺等网页地址交给壳解析
+        # 腾讯/优酷等大站交给壳
         if re.search(r'(v\.qq\.com|youku\.com|iqiyi\.com|mgtv\.com|bilibili\.com)', url, re.I):
             return {'parse': 1, 'jx': 1, 'url': url}
 
-        # 其它未知地址也交给壳解析
         return {'parse': 1, 'jx': 1, 'url': url}
+
+    def _try_decode(self, raw_url, play_from=None):
+        """优先使用 app 解码接口，失败再尝试 web 接口"""
+        # ---- 1. app 解码接口（带签名）----
+        if play_from:
+            try:
+                app_headers = self._app_headers()
+                app_url = f"{self.host}/api.php/app/decode/url/?url={quote(raw_url)}&vodFrom={play_from}"
+                r = self.fetch(app_url, headers=app_headers, timeout=10)
+                data = json.loads(r.text) if r.text else {}
+                link = data.get('data', '')
+                if isinstance(link, str) and link.startswith('http'):
+                    return link
+            except Exception as e:
+                print(f'App解码失败: {e}')
+
+        # ---- 2. web 解码接口（原有多参数尝试）----
+        decode_tries = [
+            {'url': raw_url},
+            {'play_url': raw_url},
+            {'vod_url': raw_url},
+        ]
+        for params in decode_tries:
+            j = self._api_get('/api.php/web/decode/url', params, self.host + '/play')
+            link = self._extract_url(j)
+            if link:
+                return link
+        return None
+
+    def _extract_url(self, resp_data):
+        """从解码响应中提取直链"""
+        if isinstance(resp_data, str):
+            return resp_data if resp_data.startswith('http') else None
+        if isinstance(resp_data, dict):
+            data = resp_data.get('data')
+            if isinstance(data, str):
+                return data if data.startswith('http') else None
+            if isinstance(data, dict):
+                url = data.get('url') or data.get('play_url') or data.get('playUrl') or ''
+                return url if url.startswith('http') else None
+            url = resp_data.get('url') or resp_data.get('play_url') or ''
+            return url if url.startswith('http') else None
+        return None

@@ -37,7 +37,7 @@ class Spider(Spider):
         pass
 
     def getName(self):
-        return "🌈 51吸瓜"
+        return "通用吸瓜"
 
     def isVideoFormat(self, url):
         # Treat direct media formats as playable without parsing
@@ -149,10 +149,10 @@ class Spider(Spider):
             response = requests.get(url, headers=self.headers, proxies=self.proxies, timeout=15)
             
             if response.status_code != 200:
-                return {'list': [{'vod_play_from': '51吸瓜', 'vod_play_url': f'页面加载失败${url}'}]}
+                return {'list': [{'vod_play_from': '通用吸瓜', 'vod_play_url': f'页面加载失败${url}'}]}
                 
             data = self.getpq(response.text)
-            vod = {'vod_play_from': '51吸瓜'}
+            vod = {'vod_play_from': '通用吸瓜'}
             
             # Get content/description
             try:
@@ -165,7 +165,7 @@ class Spider(Spider):
                             clist.append('[a=cr:' + json.dumps({'id': href, 'name': title}) + '/]' + title + '[/a]')
                 vod['vod_content'] = ' '.join(clist) if clist else data('.post-title').text()
             except:
-                vod['vod_content'] = data('.post-title').text() or '51吸瓜视频'
+                vod['vod_content'] = data('.post-title').text() or '通用吸瓜视频'
             
             # Get video URLs (build episode list when multiple players exist)
             try:
@@ -222,7 +222,7 @@ class Spider(Spider):
             
         except Exception as e:
             print(f"detailContent error: {e}")
-            return {'list': [{'vod_play_from': '51吸瓜', 'vod_play_url': f'详情页加载失败${ids[0] if ids else ""}'}]}
+            return {'list': [{'vod_play_from': '通用吸瓜', 'vod_play_url': f'详情页加载失败${ids[0] if ids else ""}'}]}
 
     def searchContent(self, key, quick, pg="1"):
         try:
@@ -318,9 +318,9 @@ class Spider(Spider):
         """Get working host from known dynamic URLs"""
         # Known working URLs from the dynamic gateway
         dynamic_urls = [
-            'https://artist.vgwtswi.xyz',
-            'https://ability.vgwtswi.xyz', 
-            'https://am.vgwtswi.xyz'
+            'https://advise.nlwkmsv.cc/',
+            'advise.nlwkmsv.cc', 
+          #  'https://am.vgwtswi.xyz'
         ]
         
         # Test each URL to find a working one

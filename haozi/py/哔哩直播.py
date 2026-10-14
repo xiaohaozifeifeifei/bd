@@ -1,13 +1,6 @@
 # coding=utf-8
 # !/usr/bin/python
 
-"""
-
-作者的内容均从互联网收集而来 仅供交流学习使用 版权归原创者所有 如侵犯了您的权益 请通知作者 将及时删除侵权内容
-                    ====================Diudiumiao====================
-
-"""
-
 from Crypto.Util.Padding import unpad
 from Crypto.Util.Padding import pad
 from urllib.parse import unquote

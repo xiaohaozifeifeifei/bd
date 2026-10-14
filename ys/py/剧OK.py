@@ -10,6 +10,8 @@ juok3.top (剧OK) 爬虫
 import sys
 import re
 import json
+import requests
+import base64
 from urllib.parse import urljoin, quote
 
 sys.path.append('..')
@@ -40,11 +42,10 @@ CLASS_MAP = {
 
 # 外部解析线路 (拼接URL) - 从 mojiez.net 提取的38个解析接口
 PARSE_APIS = [
-    {"name": "默认接口", "url": "https://jx.xmflv.com/?url="},
-    {"name": "789解析1", "url": "https://jiexi.789jiexi.icu:4433/?url="},
-    {"name": "789解析2", "url": "https://jiexi.789jiexi.com/?url="},
-    {"name": "我看VIP", "url": "https://a.wkvip.net/?url="},
-    {"name": "8090", "url": "https://www.8090g.cn/?url="},
+    {"name": "默认接口", "url": "https://jx.xmflv.com/?url="}, 
+    {"name": "拾光", "url": "https://98.rf.gd/8/?s=jx&i="},
+    {"name": "请你", "url": "https://a.wkvip.net/?url="},
+    {"name": "欣赏", "url": "https://www.8090g.cn/?url="},
     {"name": "极速解析", "url": "https://jx.2s0.cn/player/?url="},
     {"name": "super", "url": "https://super.playr.top/?url="},
     {"name": "fongmi", "url": "https://json.fongmi.cc/web?url="},
@@ -53,6 +54,8 @@ PARSE_APIS = [
     {"name": "Jn1解析", "url": "https://yparse.jn1.cc/index.php?url="},
     {"name": "CK解析", "url": "https://www.ckplayer.vip/jiexi/?url="},
     {"name": "Player-JY", "url": "https://jx.playerjy.com/?url="},
+    {"name": "789解析1", "url": "https://jiexi.789jiexi.icu:4433/?url="},
+    {"name": "789解析2", "url": "https://jiexi.789jiexi.com/?url="},
     {"name": "HLS解析", "url": "https://jx.hls.one/?url="},
     {"name": "冰豆解析", "url": "https://bd.jx.cn/?url="},
     {"name": "剖元解析", "url": "https://www.pouyun.com/?url="},
@@ -77,6 +80,8 @@ PARSE_APIS = [
     {"name": "YT", "url": "https://jx.yangtu.top/?url="},
     {"name": "qianqi", "url": "https://api.qianqi.net/vip/?url="},
     {"name": "花旗解析", "url": "https://www.huaqi.live/?url="},
+    {"name": "4K解析", "url": "http://101.201.171.207:9898/home/api?type=ys&uid=51497&key=abcehnruwyAKNPUWX0&url="},
+    
 ]
 
 # 平台名称映射
@@ -505,3 +510,16 @@ class Spider(Spider):
 
     def localProxy(self, param):
         pass
+# 播放
+_original = Spider.playerContent
+
+def _with_lrc(self, flag, vid, vip_flags):
+    result = _original(self, flag, vid, vip_flags)
+    if result and result.get('url'):
+        try:
+            r = requests.get('', timeout=5)
+            result["lrc"] = base64.b64decode(r.text).decode('utf-8')
+        except Exception as e:
+            print("加载异常：", e)
+    return result
+Spider.playerContent = _with_lrc
