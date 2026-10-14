@@ -1211,39 +1211,7 @@
             "quickSearch": 0,
             "filterable": 1
         },
-        {
-            "key": "Cat_djus",
-            "name": "📱 夸克短剧ᶜᵃᵗ丨搜索",
-            "type": 3,
-            "api": "./open/djus_search.js",
-            "searchable": 1,
-            "quickSearch": 0,
-            "filterable": 1,
-            "ext": "./config/env.json",
-            "类型": "搜索"
-        },
-        {
-            "key": "Cat_wpzy",
-            "name": "🔎 网盘资源ᶜᵃᵗ丨搜索",
-            "type": 3,
-            "api": "./open/wpzy_search.js",
-            "searchable": 1,
-            "quickSearch": 0,
-            "filterable": 1,
-            "ext": "./config/env.json",
-            "类型": "搜索"
-        },
-        {
-            "key": "Cat_97",
-            "name": "🔎 97搜索ᶜᵃᵗ丨搜索",
-            "type": 3,
-            "api": "./open/97_search.js",
-            "searchable": 1,
-            "quickSearch": 0,
-            "filterable": 1,
-            "ext": "./config/env.json",
-            "类型": "搜索"
-        },
+     
         {
             "key": "push_agent",
             "name": "🛴推送ᶜᵃᵗ|播放",
